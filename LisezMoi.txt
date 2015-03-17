@@ -1,0 +1,25 @@
+﻿Afin d'éxécuter le programme vous devez compiler les différentes sources :
+
+
+  -Placez-vous dans le bon dossier dans votre Terminal (typiquement : ~/Telechargement/nom_Dossier/NainJaune)
+    -Compiler à l'aide du makefile :
+      $make
+    -Compiler à la main :
+      $g++ -c *
+      $g++ -o main *.o
+
+  -Pour vider tout les fichiers programme vous pouvez utiliser la commande :
+    $make clean
+
+  
+Il est possible d'executer le programme :
+
+
+- avec l'option --help afin d'obtenir différentes directives
+    $./main --help
+
+
+- avec un mode debug qui détaille le déroulement du programme :
+        Pour activer ce mode il faut modifier dans le fichier "carte.h" la ligne
+        #define DEBUG 0 en remplaçant le 0 par 1, 2 ou 3, les détails de chacun des
+        modes se trouvent en commentaire dans le fichier "carte.h"

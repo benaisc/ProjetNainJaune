@@ -1,0 +1,867 @@
+#include "plateau.h"
+
+
+Plateau::Plateau():jeu(new Carte[52]), plateau(new Carte[5]), mises(new int[5]), defausse(Carte(0,'z'))
+{
+  for(size_t i=0; i<13; i++)
+    {
+      jeu[i]=Carte(i+1,'c');
+      jeu[i+13]=Carte(i+1,'d');
+      jeu[i+26]=Carte(i+1,'h');
+      jeu[i+39]=Carte(i+1,'s');
+    }
+  plateau[0]=Carte(10,'d');
+  plateau[1]=Carte(11,'c');
+  plateau[2]=Carte(12,'s');
+  plateau[3]=Carte(13,'h');
+  plateau[4]=Carte(7,'d');
+  for(size_t i=0; i<5; i++)
+    {
+      mises[i]=0;
+    }
+  clog<<"_Jeu cree_"<<endl;
+}
+
+Plateau::~Plateau()
+{
+  if (this->jeu != NULL)
+    {
+      delete [] this->jeu;
+    }
+  if (this->mises != NULL)
+    {
+      delete [] this->mises;
+    }
+  if (this->plateau != NULL)
+    {
+      delete [] this->plateau;
+    }
+  if (tabJoueurs != NULL)
+    {
+      delete [] tabJoueurs;
+    }
+}
+
+//Initialisation des joueurs et de leurs mises
+
+void Plateau::initJoueurs()
+{
+  cout<<"Saississez le nombre de joueurs (entre 3 et 8): ";
+  while(!(cin>>nbJoueurs) || nbJoueurs<3 || nbJoueurs>8){
+    if(cin.fail())
+      {
+	cout<<"Saisie incorrecte.";
+	cin.clear();
+	cin.ignore(SHRT_MAX, '\n');
+      }
+    else
+      if(nbJoueurs<3 || nbJoueurs>8)
+	cout<<"Le nombre de joueurs saisi est incorrect.";
+  }
+  tabJoueurs= new Joueur [nbJoueurs+1]; //Le joueur 0 est le talon
+  clog<<"Joueurs pour cette partie : "<<nbJoueurs<<endl;
+
+  //Entree et initialisation du nombre de joueurs et virtuels
+
+  size_t nbHumain;
+  cout<<"Saisissez le nombre de joueurs humain (minimum 1): ";
+  while(!(cin>>nbHumain) || nbHumain<1 || nbHumain > nbJoueurs){
+    if(cin.fail())
+      {
+	cout<<"Saisie incorrecte, recommencez : ";
+	cin.clear();
+	cin.ignore(SHRT_MAX, '\n');
+      }
+    else
+      if(nbHumain<1 || nbHumain > nbJoueurs)
+	cout<<"Le nombre de joueurs saisi est incorrect.";
+  }
+  clog<<"Dont "<<nbHumain<<" humains :";
+
+  for(size_t i=1;i<=nbHumain;i++)
+    {
+      string nom;
+      cout << "Entrez le pseudo du joueur humain n°"<<i<<" :";
+      cin >> nom;
+      tabJoueurs[i].setPseudo(nom);
+      tabJoueurs[i].setHumain(true);
+      clog<<tabJoueurs[i].getPseudo()<<" - ";
+    }
+
+  size_t cpt=1;
+  for(size_t i=nbHumain+1;i<=nbJoueurs;i++)
+    {
+      string nom;
+      switch (cpt)
+	{
+	case 1:
+	  nom="BOT1";
+	  tabJoueurs[i].setPseudo(nom);
+	  break;
+	case 2:
+	  nom="BOT2";
+	  tabJoueurs[i].setPseudo(nom);
+	  break;
+	case 3:
+	  nom="BOT3";
+	  tabJoueurs[i].setPseudo(nom);
+	  break;
+	case 4:
+	  nom="BOT4";
+	  tabJoueurs[i].setPseudo(nom);
+	  break;
+	case 5:
+	  nom="BOT5";
+	  tabJoueurs[i].setPseudo(nom);
+	  break;
+	case 6:
+	  nom="BOT6";
+	  tabJoueurs[i].setPseudo(nom);
+	  break;
+	case 7:
+	  nom="BOT7";
+	  tabJoueurs[i].setPseudo(nom);
+	  break;
+	}
+      cpt++;
+    }
+  short jeton;
+  cout<<"Choisissez le nombre de jetons desire (au moins 15): ";
+  while(!(cin>>jeton) || jeton<15){
+    if( cin.fail() )
+      {
+	cout<<"Saisie incorrecte, recommencez : ";
+	cin.clear();
+	cin.ignore(SHRT_MAX, '\n' );
+      }
+    else
+      if( jeton<15 || jeton>7500 )
+	cout<<"Le nombre de jeton saisi est incorrect, recommencez: ";
+  }
+  for(size_t i=1;i<=nbJoueurs;i++)
+    {
+      tabJoueurs[i].setJetons(jeton);
+    }
+  clog<<"\nAvec une mise de depart de : "<<jeton<<" jetons."<<endl;
+}
+
+ void Plateau::afficherPlateau() const
+ {
+   string sep="[";
+   for (size_t i=0; i<5; i++)//plateau des 5 cartes spec
+     {
+       cout<<sep;
+       this->plateau[i].afficherCarte();
+       sep="  ";
+     }
+   cout<<" ] - ";
+   if(defausse.getNumero() != 0)//defausse
+     {
+       defausse.afficherCarte();
+       cout<<endl;
+     }
+   else{
+     cout<<"[]"<<endl;
+   }
+   sep="[";
+   for(size_t i=0; i<5; i++)//mises
+     {
+       cout << sep << this->mises[i];
+       if(this->mises[i] >= 10){sep=" ";}
+       else {sep="  ";}
+     }
+   cout<<']'<<endl;
+ }
+
+ void Plateau::afficherJeu() const
+ {
+   cout<<'[';
+   for(size_t i=0; i<52; i++)
+     {
+       this->jeu[i].afficherCarte();
+       cout<<"  ";
+     }
+   cout<<']'<<endl;
+ }
+
+ void Plateau::melangerJeu()
+ {
+   if(DEBUG == 1 || DEBUG == 2){
+     cout << "MELANGERJEU" << endl << "-----------"<<endl;
+     cout<< "Avant : "<<endl;
+     afficherJeu();
+   }
+   size_t temp;
+   srand(time(0));
+   for(size_t i=0; i<52; i++)
+     {
+       temp=rand()%51;
+       echangerCarte(this->jeu[i],this->jeu[temp]);
+     }
+   if(DEBUG == 1 || DEBUG == 2){
+     cout<<"Après : "<<endl;
+     afficherJeu();
+     cout << "MELANGERJEU END" << endl << "---------------"<<endl;
+     if(DEBUG==2){
+       cin.ignore( numeric_limits<streamsize>::max(), '\n' );
+     }
+   }
+
+   clog<<"_Jeu melange_"<<endl;
+ }
+
+//vide les mains de tous les joueurs
+
+ void Plateau::viderMains()
+ {
+   clog<<"_On vide les mains_"<<endl;
+
+   if(DEBUG == 1 || DEBUG == 2){
+     cout << "VIDERMAINS" << endl << "----------" << endl;
+   }
+
+   for(size_t i=0; i<=nbJoueurs; i++)
+     {
+       if(DEBUG == 1 || DEBUG ==2){
+	 cout << "JOUEUR " << i << endl;
+       }
+       tabJoueurs[i].main.vider();
+     }
+
+   if(DEBUG == 1 || DEBUG == 2){
+     cout << "VIDERMAINS END" << endl << "--------------" << endl;
+     if(DEBUG==2){
+       cin.ignore( numeric_limits<streamsize>::max(), '\n' );
+     }
+   }
+
+ }
+
+//Elle permute tous les joueurs du tab d'une place
+
+ void Plateau::changerPlaceJoueurs()
+ {
+   clog<<"_On permute l'ordre joueurs_"<<endl;
+   Joueur tmpJ;
+
+   if(DEBUG == 1 || DEBUG == 2){
+     cout << "PERMUTATION JOUEUR" << endl <<"------------------"<< endl;
+     cout<< "avant :" << endl;
+     for(size_t i=1;i<nbJoueurs+1;i++){
+       tabJoueurs[i].afficherJoueur();
+     }
+   }
+
+   for(size_t i=1;i<nbJoueurs;i++)
+     {
+       tmpJ=tabJoueurs[i];
+       tabJoueurs[i]=tabJoueurs[i+1];
+       tabJoueurs[i+1]=tmpJ;
+     }
+
+   if(DEBUG == 1 || DEBUG == 2){
+     cout<< "après:" << endl;
+     for(size_t i=1;i<nbJoueurs+1;i++)
+       {
+	 cout << "Joueur " << i <<" : ";
+	 tabJoueurs[i].afficherJoueur();
+       }
+     cout << "PERMUTATION JOUEUR END" << endl << "----------------------"<<endl;
+     if(DEBUG == 2){
+       cin.ignore( numeric_limits<streamsize>::max(), '\n');
+     }
+   }
+ }
+
+//Melange le jeu, attribue une carte à chaque joueurs, elle s'occupe de determiner le premier donneur
+//et de reorganiser le tableau de joueur
+
+ void Plateau::premDonneur()
+ {
+   if(DEBUG == 1 || DEBUG == 2){
+     cout <<"PREMIER DONNEUR" << endl << "---------------"<<endl;
+   }
+
+   this->melangerJeu();
+   size_t tmp=1;
+   size_t carte=51;
+
+   for(size_t i=1; i<=nbJoueurs; i++)//on donne une carte a tous
+     {
+       tabJoueurs[i].main.ajoutFin(jeu[carte--]);
+     }
+
+   for(size_t i=2; i<=nbJoueurs; i++)//on les compare
+     {
+       if(tabJoueurs[i].main.valeur(tabJoueurs[i].main.premier()).getNumero()==tabJoueurs[tmp].main.valeur(tabJoueurs[tmp].main.premier()).getNumero())
+	 {
+	   switch (tabJoueurs[i].main.valeur(tabJoueurs[i].main.premier()).getSigne())
+	     {
+	     case 's':
+	       tmp=i;
+	       break;
+
+	     case 'h':
+	       if(tabJoueurs[tmp].main.valeur(tabJoueurs[tmp].main.premier()).getNumero()!= 's')
+		 tmp=i;
+	       break;
+
+	     case 'd':
+	       if(tabJoueurs[tmp].main.valeur(tabJoueurs[tmp].main.premier()).getNumero()== 'c')
+		 tmp=i;
+	       break;
+
+	     case 'c':
+	       break;
+	     }
+	 }
+       else
+	 {
+	   if(tabJoueurs[i].main.valeur(tabJoueurs[i].main.premier()).getNumero()>tabJoueurs[tmp].main.valeur(tabJoueurs[tmp].main.premier()).getNumero())
+	     {tmp=i;}
+	 }
+     }
+   clog<<"Determination du premier Donneur : "<<tabJoueurs[tmp].getPseudo()<<endl;
+   cout << "Le premier donneur est " << tabJoueurs[tmp].getPseudo()<<endl;
+   viderMains();
+   for(size_t i=1; i<tmp; i++)
+     {
+       changerPlaceJoueurs();
+     }
+   if(DEBUG == 1 || DEBUG == 2){
+     cout <<"PREMIER DONNEUR END" << endl << "-------------------"<<endl;
+     if(DEBUG == 2){
+       cin.ignore(numeric_limits<streamsize>::max(),'\n');
+     }
+   }
+ }
+
+ void Plateau::distribuer()
+ {
+   if(DEBUG == 1 || DEBUG == 2){
+     cout <<"DISTRIBUTION" << endl << "------------"<<endl;
+   }
+   this->melangerJeu();
+   size_t distrib;
+   size_t carte=0;
+   switch (nbJoueurs)
+     {
+     case 3:
+       distrib=15;
+       break;
+
+     case 4:
+       distrib=12;
+       break;
+
+     case 5:
+       distrib=9;
+       break;
+
+     case 6:
+       distrib=8;
+       break;
+
+     case 7:
+       distrib=7;
+       break;
+
+     case 8:
+       distrib=6;
+       break;
+     }
+   for(size_t j=1;j<=nbJoueurs;j++)
+     {
+       size_t CPT=0;
+       while(CPT<distrib)
+	 {
+	   tabJoueurs[j].main.ajoutFin(jeu[carte++]);
+	   CPT++;
+	 }
+       tabJoueurs[j].main.triMain();
+     }
+   while(carte<52)//talon
+     {
+       tabJoueurs[0].main.ajoutFin(jeu[carte++]);
+     }
+   if(DEBUG == 1 || DEBUG == 2){
+     for(size_t i=0;i<=nbJoueurs;i++)
+       {
+	 cout<< "Main du joueur " << i << " : " <<endl;
+	 tabJoueurs[i].main.afficheMain();
+       }
+     cout <<"DISTRIBUTION END" << endl << "----------------"<<endl;
+     if(DEBUG == 2){
+       cin.ignore(numeric_limits<streamsize>::max(), '\n');
+     }
+   }
+   clog<<"_Jeu distribué_"<<endl;
+ }
+
+//Mise en place de la mise de 15 à chaque debut de partie
+//elle gère les joueurs ne pouvant pas payer
+
+ void Plateau::miseInit()
+ {
+   clog<<"_Initialisation des mises_"<<endl;
+   for(size_t i=1;i<=nbJoueurs;i++)
+     {
+       if(tabJoueurs[i].getJetons() < 15)
+	 {
+	   clog<<tabJoueurs[i].getPseudo()<<" n'a pas assez de jetons pour miser."<<endl;
+	   cout<<"Désolé "<<tabJoueurs[i].getPseudo()<<" vous n'avez plus assez de jetons pour jouer."<<endl;
+	   tabJoueurs=enleverJoueur(tabJoueurs[i].getPseudo());
+	   if(i>1){i--;}
+	 }
+       else
+	 {
+	   for(size_t j=0;j<5;j++)
+	     {
+	       this->mises[j]+=(j+1);
+	     }
+	   tabJoueurs[i].setJetons((tabJoueurs[i].getJetons()-15));
+	   clog<<tabJoueurs[i].getPseudo()<<" possede "<<tabJoueurs[i].getJetons()<<" jetons."<<endl;
+	 }
+     }
+ }
+
+ void Plateau::initDefausse()
+ {
+   defausse=Carte(0,'z');
+ }
+
+ void Plateau::afficheDefausse() const
+ {
+   if(this->defausse.getNumero() != 0)
+     {
+       this->defausse.afficherCarte();
+       cout << endl;
+     }
+   else{
+     cout<<"[]"<<endl;
+   }
+ }
+
+ void Plateau::setDefausse(Carte c)
+ {
+   this->defausse=c;
+ }
+
+ int Plateau::valDefausse() const
+ {
+   return this->defausse.getNumero();
+ }
+
+//Attribue au gagnant +1 de score
+
+ void Plateau::scoreGagnant(Joueur &j)
+ {
+   int tmp=j.getScore();
+   j.setScore(tmp+1);
+   cout<< "Bravo " <<j.getPseudo()<<" votre score s'eleve desormais a "<<j.getScore()<<endl;
+ }
+
+//prend l'indice d'un joueur dans tabJoueur et retourne le nombre de cartes dans sa main
+
+ size_t Plateau::longMain(int num) const
+ {
+   return tabJoueurs[num].main.longueur();
+ }
+
+//Attribution des jetons au gagnant en fin de partie
+//elle gere les joueurs ne pouvant payer
+
+ void Plateau::payerGagnant(Joueur &win)
+ {
+   if(DEBUG == 1 || DEBUG == 2){
+     cout << "PAYER GAGNANT" << endl <<"-------------"<< endl;
+     cout << "Avant :" << endl;
+     for(size_t i=1;i<nbJoueurs+1;i++)
+       {
+	 tabJoueurs[i].afficherJoueur();
+       }
+     cout << endl;
+   }
+   clog<<"Le gagnant est "<<win.getPseudo();
+   int cpt;//compteur des val des cartes restantes
+   int dollar;//$du gagnant
+   int money;//$du joueur
+   for(size_t i=1; i<=nbJoueurs; i++)//Pour tous les joueurs
+     {
+       cpt=0;
+       if(longMain(i) != 0)//si s'est pas le gagnant
+	 {
+	   for(size_t j=1;j<=longMain(i);j++)//pour toutes ses cartes
+	     {
+	       if(tabJoueurs[i].main.valeur(tabJoueurs[i].main.chercheVal(j)).getNumero()>10)//carte speciale
+		 {
+		   cpt+=10;
+		 }
+	       else
+		 {
+		   cpt+=tabJoueurs[i].main.valeur(tabJoueurs[i].main.chercheVal(j)).getNumero();
+		 }
+	     }
+	   money=tabJoueurs[i].getJetons();//on check sa money
+	   if(cpt<=money)//il a assez
+	     {
+	       dollar=win.getJetons();//on check les dollar du win
+	       win.setJetons(dollar+cpt);//on le reward
+	       tabJoueurs[i].setJetons(money-cpt);//on enleve la reward
+	     }
+	   else//faut le sortir
+	     {
+	       dollar=win.getJetons();//mais on est sympa
+	       win.setJetons(dollar+money);
+	       cout<<"Désolé "<<tabJoueurs[i].getPseudo()<<", vous avez les poches vides."<<endl;
+	       tabJoueurs=enleverJoueur(tabJoueurs[i].getPseudo());
+	       if(i>1){i--;}
+	     }
+	 }
+     }
+   clog<<" et possède désormais "<<win.getJetons()<<" jetons."<<endl;
+
+  if(DEBUG == 1 || DEBUG == 2){
+     cout << "Après:" << endl;
+     for(size_t i=1;i<nbJoueurs+1;i++)
+       {
+	 tabJoueurs[i].afficherJoueur();
+       }
+     cout << endl << "PAYER GAGNANT END" << endl <<"-----------------"<< endl;
+   }
+   if(DEBUG == 2){
+     cin.ignore(numeric_limits<streamsize>::max(), '\n');
+   }
+
+ }
+
+//Prend un pseudo en paramètre, copie tout les autres joueurs et retourne un tabJoueurs[--nbJoueurs]
+
+ Joueur* Plateau::enleverJoueur(string nom)
+ {
+   if(DEBUG == 1 || DEBUG == 2){
+     cout<<"ENLEVER JOUEUR" << endl << "--------------" << endl;
+     cout<<"Avant :"<<endl;
+     for(size_t i=1;i<nbJoueurs+1;i++){
+       tabJoueurs[i].afficherJoueur();
+     }
+   }
+   size_t ind=1;
+   while((ind <= nbJoueurs) && !(tabJoueurs[ind].getPseudo()==nom))
+     {
+       ind++;
+     }
+   cout<<nom<<" se fait sortir "<<endl;
+   nbJoueurs--;
+   Joueur *newTabJoueurs;
+   newTabJoueurs= new Joueur[nbJoueurs+1];
+   size_t tmp=0;
+   for(size_t i=0;i<=nbJoueurs+1;i++){
+     if(i != ind){
+       newTabJoueurs[tmp++]=tabJoueurs[i];
+     }
+   }
+   clog<<"Le joueur "<<nom<<" quitte la partie"<<endl;
+   delete [] tabJoueurs;
+   tabJoueurs= new Joueur[nbJoueurs+1];
+   return newTabJoueurs;
+
+   if(DEBUG == 1 || DEBUG == 2){
+     cout<<"Après :"<<endl;
+     for(size_t i=1;i<nbJoueurs+1;i++){
+       newTabJoueurs[i].afficherJoueur();
+     }
+     cout<<"ENLEVER JOUEUR END" << endl << "------------------" << endl;
+     if(DEBUG == 2 ){
+       cin.ignore(numeric_limits<streamsize>::max(),'\n');
+     }
+   }
+
+ }
+
+//permet au joueur de retirer une mise liee a une carte speciale
+
+ void Plateau::retirerMise(int indJ)
+ {
+   clog<<tabJoueurs[indJ].getPseudo()<<" retire une mise";
+   int n=tabJoueurs[indJ].getJetons();
+   if(defausse.getNumero()==10 && defausse.getSigne()=='d')
+     {
+       tabJoueurs[indJ].setJetons(n+mises[0]);
+       mises[0]=0;
+     }
+   else if(defausse.getNumero()==11 && defausse.getSigne()=='c')
+     {
+       tabJoueurs[indJ].setJetons(n+mises[1]);
+       mises[1]=0;
+     }
+   else if(defausse.getNumero()==12 && defausse.getSigne()=='s')
+     {
+       tabJoueurs[indJ].setJetons(n+mises[2]);
+       mises[2]=0;
+     }
+   else if(defausse.getNumero()==13 && defausse.getSigne()=='h')
+     {
+       tabJoueurs[indJ].setJetons(n+mises[3]);
+       mises[3]=0;
+     }
+   else if(defausse.getNumero()==7 && defausse.getSigne()=='d')
+     {
+       tabJoueurs[indJ].setJetons(n+mises[4]);
+       mises[4]=0;
+     }
+   else{
+     clog<<", sans succès.";
+     cout<<"Vous ne pouvez pas retirer de mise avec la carte que vous venez de jouer."<<endl;
+   }
+   clog<<endl;
+ }
+
+ Carte Plateau::getDefausse() const
+ {
+   return this->defausse;
+ }
+
+//verification du nombre de joueurs et d'humains
+ bool Plateau::autorisationJouer(int nb) const
+ {
+   string str="La partie est conforme aux règles.";
+   bool chk=false;
+   size_t i=1;
+   do
+     {
+       chk=tabJoueurs[i++].estHumain();
+     }while(i<=nbJoueurs && !chk);
+   if(chk)
+     {
+       if(nbJoueurs<3){
+	 chk=false;
+	 str="Il n'y à plus assez de joueurs.";
+       }
+     }
+   else
+     {
+       str="Il n'y à plus d'humains pour jouer.";
+     }
+   clog<<str<<endl;
+   return chk;
+}
+
+void Plateau::enterScores()
+{
+  ifstream slog;
+  slog.open("score.txt");
+  //si le fichier existe
+  if(slog.is_open())
+  {
+    cout<<"_Score existe, la fonction n'est pas fini dans ce cas_"<<endl;
+  /*
+    //on buffurise score.txt
+    streambuf *pbuf = slog.rdbuf();
+    //on get taille
+    streamsize size = pbuf->pubseekoff(0,slog.end);
+    //remet pointeur debut
+    pbuf->pubseekoff(0,slog.beg);
+    //contents contient le buffer
+    char* contents = new char [size];
+    pbuf->sgetn(contents,size);
+    //converti contents en string pour sregex
+    string istr(contents, find(contents, contents+size, '\0'));
+    cout<<istr<<endl;
+    //plus besoin de ça juste de la string
+    delete [] contents;
+    slog.close();
+    //on rempli un tabJ du Pseudo et Score lu
+    Joueur* tabJ = new Joueur[10];
+    size_t ind=0;
+    //expression REGEX utilisee pour fetch pseudo et score
+    const regex pattern("(^.*)+ +(\\d+)");
+    //pointeur vers l'EOF
+    const sregex_token_iterator rend;
+    //fonction complexe pointant tout les pattern de la string
+    sregex_token_iterator p(istr.begin(),istr.end(), pattern);
+
+    cout<<"---------- bug juste en dessous"<<endl;
+    while(p != rend)
+    {
+      cout<<(*p)<<endl;
+      cout<<((*p).str())<<endl;
+      tabJ[ind].setPseudo((*p).str());
+      p++;
+      tabJ[ind].setScore(atoi((*p).str().c_str()));
+      p++;
+      cout<<ind<<endl;
+      tabJ[ind].afficherJoueur();
+      ind++;
+    }
+    cout<<"bug juste au dessus -------"<<endl;
+
+    for(size_t i=1; i<=nbJoueurs; i++)//On retire les bots
+    {
+      if(!tabJoueurs[i].estHumain())
+      {
+        tabJoueurs=enleverJoueur(tabJoueurs[i].getPseudo());
+        i--;
+      }
+    }
+    //comparer les pseudo+fusion des existants
+    bool trouver;
+    size_t i=0;
+    size_t j=0;
+    while(j<ind)
+    {
+      i=1;
+      trouver=false;
+      while(i<=nbJoueurs && !trouver)
+      {
+        if(tabJ[j].getPseudo()==tabJoueurs[i].getPseudo())
+        {
+          tabJ[j].setScore(tabJ[j].getScore()+tabJoueurs[i].getScore());
+          enleverJoueur(tabJoueurs[i].getPseudo());//on retire le joueur concerne
+          trouver=true;
+        }
+        i++;
+      }
+      j++;
+    }
+    //Aucun des joueurs restant dans tabJoueurs n'existe dans tabJ
+
+    //finir de remplir tabJ si ce n'est pas le cas avec le tabJoueurs
+    while(nbJoueurs>0 && ind<10)
+    {
+      tabJ[ind++]=tabJoueurs[nbJoueurs];
+      enleverJoueur(tabJoueurs[nbJoueurs].getPseudo());
+    }
+    //trier tabJ en fonction des scores
+    j=0;
+    Joueur tempJ;
+    while(j+1<ind-1)
+    {
+      i=j+1;
+      while(i<ind)
+      {
+        if(tabJ[j].getScore()<tabJ[i].getScore())
+        {
+          tempJ=tabJ[j];
+          tabJ[j]=tabJ[i];
+          tabJ[i]=tempJ;
+        }
+        i++;
+      }
+      j++;
+    }
+    //ajoute le reste si besoin et trie
+    size_t k=ind-1;
+    if(nbJoueurs>0)
+    {
+      for(i=1; i<=nbJoueurs; i++)
+      {
+        if(tabJ[k].getScore()<tabJoueurs[i].getScore())
+        {
+          tabJ[k]=tabJoueurs[i];
+          enleverJoueur(tabJoueurs[i].getPseudo());
+          i--;
+          //tri de tabJ
+          j=ind-1;
+          trouver=false;
+          while(j>0 && !trouver)
+          {
+            if(tabJ[j].getScore()>tabJ[j-1].getScore())
+            {
+              tempJ=tabJ[j-1];
+              tabJ[j-1]=tabJ[j];
+              tabJ[j]=tempJ;
+            }
+            else{trouver=true;}
+            j--;
+          }
+        }
+      }
+    }
+    //ecrire tabJ dans le fichier
+    ofstream logFile;
+    logFile.open("score.txt");
+    cout<<"_score reouvert_"<<endl;
+    streambuf *newbuf, *backup;
+    backup=clog.rdbuf();
+    newbuf=logFile.rdbuf();
+    clog.rdbuf(newbuf);
+    cout<<"_clog OK_"<<endl;
+    for(i=0; i<ind; i++)
+    {
+      clog<<tabJ[i].getPseudo()<<' '<<tabJ[i].getScore()<<'\n';
+    }
+    clog.rdbuf(backup);
+    logFile.close();
+  */
+	slog.close();
+  }
+  else
+  {//OK
+    cout<<"Creation de score.txt"<<endl;
+    slog.close();
+    size_t j=1;
+    while(j<=nbJoueurs)//On retire les bots
+    {
+      if(!tabJoueurs[j].estHumain())
+      {
+        tabJoueurs=enleverJoueur(tabJoueurs[j].getPseudo());
+        j--;//faut repasser car décalage a gauche par enleverjoueur
+      }
+      j++;
+    }
+    //trier tabJoueurs en fonction des scores
+    //for(j=0;j<=nbJoueurs;j++){tabJoueurs[j].afficherJoueur();}
+    if(nbJoueurs>0)
+    {
+      j=1;
+
+      while(j<nbJoueurs)
+      {
+        size_t i=j+1;
+        while(i<=nbJoueurs)
+        {
+          if(tabJoueurs[j].getScore()<tabJoueurs[i].getScore())
+          {
+            Joueur tempJ=tabJoueurs[j];
+            tabJoueurs[j]=tabJoueurs[i];
+            tabJoueurs[i]=tempJ;
+          }
+          i++;
+        }
+        j++;
+      }
+      //for(j=0;j<=nbJoueurs;j++){tabJoueurs[j].afficherJoueur();}
+      ofstream logFile;
+      logFile.open("score.txt");
+      streambuf *newbuf, *backup;
+      backup=clog.rdbuf();
+      newbuf=logFile.rdbuf();
+      clog.rdbuf(newbuf);
+      for(size_t i=1; i<=nbJoueurs; i++)
+      {
+        clog<<tabJoueurs[i].getPseudo()<<' '<<tabJoueurs[i].getScore()<<'\n';
+      }
+      clog.rdbuf(backup);
+      logFile.close();
+    }
+  }
+}
+
+void HELP()
+{
+	cout<<"__________________H_E_L_P__________________\n"<<endl;
+	cout<<"Il est possible de jouer jusqu'à 8 joueurs, avec un  minimum de 3."<<endl;
+	cout<<"Il est possible d'activer jusqu'à 7 joueurs virtuels.\n"<<endl;
+	cout<<"Pour son utilisation le programme necessite au minimum un joueur réel."<<endl;
+	cout<<"Le nain jaune se joue avec 52 cartes classiques et une dotation initiale en jetons :"<<endl;
+	cout<<"Une partie coute à chaque joueurs 15 jetons, répartis sur un plateau de 5 cartes spéciales."<<endl;
+	cout<<"Au cours d'une partie, le joueur se défaussant d'une carte spéciale ne devra pas oublier de retirer la mise, ";
+	cout<<"auquel cas elle sera remise en jeu la partie suivante.\n"<<endl;
+	cout<<"Fin de partie lorsqu'un joueur s'est défaussé de toutes ses cartes, ";
+	cout<<"les autres joueurs doivent payer pour chacunes des cartes restantes dans leurs mains :"<<endl;
+	cout<<"1 jetons pour l'as, 2 jetons pour le 2.. 10 jetons pour les têtes et le 7 de Carreau ou 'Nain-Jaune'."<<endl;
+	cout<<"Il vous sera indiqué des valeurs minimales, maximales ou non seulement possibles pour les actions proposées."<<endl;
+	cout<<"___________________________________________\n"<<endl;
+}
+

@@ -1,0 +1,44 @@
+_Jeu cree_
+Joueurs pour cette partie : 8
+Dont 1 humains :A - 
+Avec une mise de depart de : 999 jetons.
+_Jeu melange_
+Determination du premier Donneur : BOT4
+_On vide les mains_
+_On permute l'ordre joueurs_
+_On permute l'ordre joueurs_
+_On permute l'ordre joueurs_
+_On permute l'ordre joueurs_
+_Initialisation des mises_
+BOT4 possede 984 jetons.
+BOT5 possede 984 jetons.
+BOT6 possede 984 jetons.
+BOT7 possede 984 jetons.
+A possede 984 jetons.
+BOT1 possede 984 jetons.
+BOT2 possede 984 jetons.
+BOT3 possede 984 jetons.
+La partie est conforme aux règles.
+_Jeu melange_
+_Jeu distribué_
+A retire une mise, sans succès.
+A retire une mise, sans succès.
+A retire une mise
+BOT2 retire une mise
+BOT6 retire une mise
+BOT7 retire une mise
+BOT7 retire une mise
+Le gagnant est A et possède désormais 1064 jetons.
+_On vide les mains_
+La partie est conforme aux règles.
+Le joueur A quitte la partie
+_Initialisation des mises_
+BOT4 possede 964 jetons.
+BOT5 possede 960 jetons.
+BOT6 possede 989 jetons.
+BOT7 possede 1013 jetons.
+BOT1 possede 956 jetons.
+BOT2 possede 981 jetons.
+BOT3 possede 960 jetons.
+_On permute l'ordre joueurs_
+Il n'y à plus d'humains pour jouer.
